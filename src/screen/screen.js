@@ -58,7 +58,9 @@ class Screen {
             this.resolvers = { resolve, reject };
         });
     }
-
+    // so we register commands at the level/when creating the screen 
+    // we then check if we are currently issuing a command 
+    // if not, we loop through all registered commands and check if we should execute them 
     cycle(elapsed) {
         this.age += elapsed;
 
@@ -66,6 +68,7 @@ class Screen {
             this.releasedCommand = true;
         }
 
+        // these are menu/navigation buttons, the actual logic is defined in the implementor screen
         if (this.releasedCommand && this.isForeground()) {
             for (const { detect, action, playSound } of this.commands) {
                 if (detect?.()) {

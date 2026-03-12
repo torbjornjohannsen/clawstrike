@@ -83,6 +83,8 @@ class Game {
     }
 
     frame() {
+        // for replaying, hardcode elapsed to 1/30? 
+        // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30
         const now = performance.now();
         const elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
         this.lastFrame = now;
