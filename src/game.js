@@ -106,6 +106,18 @@ class Game {
         }
     }
 
+    /** @type {import("bachelor").GetNextState} */
+    getNextState(world, input) {
+        const qwe = deserializeWorld(world)
+        let remaining = input.elapsedTime;
+        while (remaining > 0) {
+            const advance = min(remaining, 1 / 120);
+            remaining -= advance;
+            qwe.cycle(advance, input.downKeys);
+        }
+        return serializeWorld(qwe);
+    }
+
     async frame() {
         // for replaying, hardcode elapsed to 1/30? 
         // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30

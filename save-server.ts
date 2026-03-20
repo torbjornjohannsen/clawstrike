@@ -1,10 +1,11 @@
 import http from "node:http";
 import { SqliteAdapter } from "bachelor/adapters/sqlite";
+import { getNextState } from "./game-engine.js";
 
 const PORT = 9090;
 const adapter = new SqliteAdapter("recordings.db");
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -50,6 +51,52 @@ const server = http.createServer((req, res) => {
                 res.end("Error");
             }
         });
+        return;
+    }
+
+    if (req.method === "GET" && req.url?.startsWith("/replay")) {
+        const params = new URL(req.url, `http://localhost:${PORT}`).searchParams;
+        const guid = params.get("guid");
+        if (!guid) {
+            res.writeHead(400);
+            res.end("Missing guid parameter");
+            return;
+        }
+        const stop = params.has("stop") ? parseInt(params.get("stop")!, 10) : undefined;
+        try {
+            const game = await adapter.GetStoredGame(guid);
+            let state = game.initial;
+            const inputs = game.inputs;
+            const limit = stop !== undefined ? Math.min(stop, inputs.length) : inputs.length;
+            for (let i = 0; i < limit; i++) {
+                state = getNextState(state, inputs[i]);
+            }
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ state, inputsApplied: limit, inputsTotal: inputs.length }));
+        } catch (err) {
+            console.error(err);
+            res.writeHead(404);
+            res.end("Session not found");
+        }
+        return;
+    }
+
+    if (req.method === "GET" && req.url?.startsWith("/session")) {
+        const guid = new URL(req.url, `http://localhost:${PORT}`).searchParams.get("guid");
+        if (!guid) {
+            res.writeHead(400);
+            res.end("Missing guid parameter");
+            return;
+        }
+        try {
+            const game = await adapter.GetStoredGame(guid);
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(game));
+        } catch (err) {
+            console.error(err);
+            res.writeHead(404);
+            res.end("Session not found");
+        }
         return;
     }
 
