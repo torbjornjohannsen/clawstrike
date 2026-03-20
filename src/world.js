@@ -3,10 +3,10 @@ class World {
     entities = [];
     categories = {};
 
-    cycle(elapsed) {
+    cycle(elapsed, downKeys) {
         for (const entity of this.entities.slice()) {
             if (DEBUG && this.editorMode && entity.type) continue;
-            entity.cycle(elapsed);
+            entity.cycle(elapsed, downKeys);
         }
     }
 

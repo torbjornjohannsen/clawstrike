@@ -40,8 +40,8 @@ class Structure extends Entity {
 
     z = Z_STRUCTURE;
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
         this.width = this.matrix[0].length * CELL_SIZE;
         this.height = this.matrix.length * CELL_SIZE;
     }

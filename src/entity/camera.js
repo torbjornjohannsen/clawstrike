@@ -11,8 +11,8 @@ class Camera extends Entity {
         return this.cachedActual;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         this.hitbox.width = CANVAS_WIDTH / this.zoom;
         this.hitbox.height = CANVAS_HEIGHT / this.zoom;

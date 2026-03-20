@@ -118,8 +118,8 @@ class Cat extends Entity {
         return hasWall;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         if (this.age - this.lastAttack < 0.1) {
             elapsed *= 0.2;

@@ -9,7 +9,7 @@ class StoryScreen extends WorldScreen {
     }
 
     async fadeIn() {
-        this.cycle(0.2);
+        this.cycle(0.2, {});
         const fadeIn = this.world.addEntity(new Flash('#000'));
         await fadeIn.interp('alpha', 1, 0, 1);
     }
@@ -36,8 +36,8 @@ class StoryScreen extends WorldScreen {
         this.resolve();
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
         for (const cat of this.world.category('cat')) {
             cat.color = '#fff';
         }
@@ -76,7 +76,7 @@ class IntroScreen extends StoryScreen {
 
         this.addCommand(
             '',
-            () => downKeys[13],
+            () => this.downKeys?.[13],
             () => this.resolve(),
         );
 
@@ -94,8 +94,8 @@ class IntroScreen extends StoryScreen {
         })();
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed * (this.world.category('bullet').size ? 0.1 : 1));
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed * (this.world.category('bullet').size ? 0.1 : 1), downKeys);
 
         this.makeHarmless(this.owner);
         this.makeHarmless(this.enemy);
@@ -150,8 +150,8 @@ class RevengeScreen extends StoryScreen {
         })();
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed * (this.enemy.health ? 1 : 0.1));
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed * (this.enemy.health ? 1 : 0.1), downKeys);
         this.makeHarmless(this.enemy);
     }
 }

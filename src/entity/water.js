@@ -14,8 +14,8 @@ class Water extends Entity {
         return hitbox;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         for (const target of this.targets()) {
             if (target.hitbox.intersects(this.hitbox)) target.damage();

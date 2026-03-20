@@ -7,8 +7,8 @@ import * as terser from 'terser';
 import yargs from 'yargs/yargs';
 
 const JS_FILES = [
-    'difficulty.js',
     'globals.js',
+    'difficulty.js',
 
     'input/keyboard.js',
     'input/touch.js',
@@ -305,6 +305,26 @@ const minifyLevel = (levelJson: any[]): string => {
     let js = (await Promise.all(
         jsFiles.map(path => fs.readFile('src/' + path, 'utf-8')))
     ).join('\n');
+
+    // Resolve import statements: inline the module's JS and strip the import line
+    const importRegex = /^import\s+.+\s+from\s+["'](.+?)["'];?\s*$/gm;
+    const resolvedModules = new Set<string>();
+    let importMatch: RegExpExecArray | null;
+    let inlinedModules = '';
+    while ((importMatch = importRegex.exec(js)) !== null) {
+        const moduleName = importMatch[1];
+        if (!resolvedModules.has(moduleName)) {
+            resolvedModules.add(moduleName);
+            const pkgJson = JSON.parse(await fs.readFile(`node_modules/${moduleName}/package.json`, 'utf-8'));
+            const mainFile = pkgJson.exports?.['.']?.import || pkgJson.main || 'index.js';
+            const moduleJs = await fs.readFile(`node_modules/${moduleName}/${mainFile}`, 'utf-8');
+            // Strip export statements from the inlined module
+            inlinedModules += moduleJs
+                .replace(/^export \* from .+;?\s*$/gm, '')  // remove re-exports (export * from './x')
+                .replace(/^export\s+/gm, '') + '\n';         // strip export keyword from declarations
+        }
+    }
+    js = inlinedModules + js.replace(importRegex, '');
 
     js += 'deminifyMatrix = ' + deminifyMatrix.toString() + ';\n\n';
     js += 'ALL_LEVELS = [\n';

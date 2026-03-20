@@ -16,7 +16,7 @@ class Screen {
     addDifficultyChangeCommand() {
         this.addCommand(
             () => nomangle('PRESS [K] TO SET DIFFICULTY ') + '(' + G.difficulty.label + ')',
-            () => downKeys[75],
+            () => this.downKeys?.[75],
             () => {
                 const currentIndex = DIFFICULTIES.indexOf(G.difficulty);
                 if (currentIndex >= 0) G.difficulty = DIFFICULTIES[(currentIndex + 1) % DIFFICULTIES.length];
@@ -27,7 +27,7 @@ class Screen {
     addMainMenuCommand() {
         this.addCommand(
             nomangle('PRESS [M] TO RETURN TO MAIN MENU'),
-            () => downKeys[77],
+            () => this.downKeys?.[77],
             () => G.startNavigation(),
         );
     }
@@ -61,7 +61,8 @@ class Screen {
     // so we register commands at the level/when creating the screen 
     // we then check if we are currently issuing a command 
     // if not, we loop through all registered commands and check if we should execute them 
-    cycle(elapsed) {
+    cycle(elapsed, downKeys) {
+        this.downKeys = downKeys;
         this.age += elapsed;
 
         if (Object.values(downKeys).filter(x => x).length == 0 && !TOUCH_DOWN) {
@@ -105,8 +106,8 @@ class TransitionScreen extends Screen {
         return this.age / 0.2;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
         if (this.progress >= 1) {
             this.resolve();
         }

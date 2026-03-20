@@ -8,7 +8,7 @@ class PauseScreen extends MenuScreen {
         super();
         this.addCommand(
             nomangle('PRESS [ESC] TO RESUME'),
-            () => downKeys[27],
+            () => this.downKeys?.[27],
             () => this.resolve(),
         );
         this.addDifficultyChangeCommand();

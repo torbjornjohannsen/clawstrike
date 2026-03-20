@@ -23,8 +23,8 @@ class MeowEffect extends Entity {
         return interpolate(0, 400, this.age / 0.5);
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         for (const human of this.world.category('human')) {
             if (!this.affected.has(human) && distance(this, human) < this.radius) {

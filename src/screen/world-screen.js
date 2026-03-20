@@ -32,14 +32,15 @@ class WorldScreen extends Screen {
         }
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         let remaining = elapsed;
         while (remaining > 0) {
+            // hard-locked to min-120 tick rate
             const advance = min(remaining, 1 / 120);
             remaining -= advance;
-            this.world.cycle(advance);
+            this.world.cycle(advance, downKeys);
         }
     }
 

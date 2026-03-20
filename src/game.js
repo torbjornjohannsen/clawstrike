@@ -1,8 +1,19 @@
+import { StateRecorder } from "bachelor";
+
 class Game {
 
     bestRunTime = parseInt(localStorage[nomangle("bt")]) || 0;
     screens = [];
     difficulty = inputMode == INPUT_MODE_TOUCH ? DIFFICULTY_EASY : DIFFICULTY_NORMAL;
+    recorder = new StateRecorder(async (initReq) => {
+            console.log("Initial: ", JSON.stringify(initReq));
+            return Promise.resolve("Ok"); 
+        }, 
+        async (inProgReq) => {
+            console.log("In progress: ", JSON.stringify(inProgReq));
+            return Promise.resolve("Ok");
+        }, 
+        9999);
 
     constructor() {
         if (DEBUG) {
@@ -39,11 +50,16 @@ class Game {
 
                 for (let attempt = 0; ; attempt++) {
                     try {
+                        // sets it to only have this one new gameplay screen 0
+                        // levels are the data in the level/levels/ folder 
                         const gameplay = this.navigate(new GameplayScreen(ALL_LEVELS[level]), true);
                         if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay));
 
                         // Reveal the level
                         this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
+
+                        const deserializedWorld = deserializeWorld(ALL_LEVELS[level])
+                        this.recorder.Initialize(deserializedWorld)
 
                         await gameplay.awaitCompletion();
 
@@ -89,18 +105,25 @@ class Game {
         const elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
         this.lastFrame = now;
 
+        const keysSnapshot = {...downKeys};
+
+        this.recorder.RecordUserInput({
+            elapsedTime: elapsed,
+            downKeys: keysSnapshot,
+        });
+
         ctx.miterLimit = 2;
 
         if (!DEBUG || document.hasFocus()) {
             if (DEBUG) {
-                if (downKeys[71]) elapsed *= 0.1;
-                if (downKeys[70]) elapsed *= 4;
+                if (keysSnapshot[71]) elapsed *= 0.1;
+                if (keysSnapshot[70]) elapsed *= 4;
             }
 
             let i = this.screens.length;
             while (this.screens[--i]) {
                 const screen = this.screens[i];
-                screen.cycle(elapsed);
+                screen.cycle(elapsed, keysSnapshot);
                 if (screen.absorb) break;
             }
 

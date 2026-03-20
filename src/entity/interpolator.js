@@ -16,15 +16,15 @@ class Interpolator extends Entity {
         this.duration = duration;
         this.easing = easing;
 
-        this.cycle(0);
+        this.cycle(0, {});
     }
 
     awaitCompletion() {
         return new Promise(resolve => this.resolve = resolve);
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         const progress = this.age / this.duration;
 

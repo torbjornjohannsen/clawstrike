@@ -21,8 +21,8 @@ class HUD extends Entity {
         this.cat = cat;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         const humanCount = this.world.category('human').size;
         this.maxHumanCount = max(this.maxHumanCount || 0, humanCount);

@@ -78,8 +78,8 @@ class Human extends Entity {
         return this.age - this.lastSeenCat < 2;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         const { facing } = this;
 

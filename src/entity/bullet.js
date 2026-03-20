@@ -13,7 +13,7 @@ class Bullet extends Entity {
         zzfx(...[0.8,,221,.01,.03,.19,4,2.5,,,,,,1.1,,.2,,.61,.09]); // Shoot 93
     }
 
-    cycle(elapsed) {
+    cycle(elapsed, downKeys) {
         const { x, y } = this;
 
         this.x += elapsed * cos(this.angle) * BULLET_SPEED;

@@ -10,8 +10,8 @@ class ClawEffect extends Entity {
         this.scale = 1 + this.seed * 0.5;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         if (this.age > 1) {
             this.world?.removeEntity(this);

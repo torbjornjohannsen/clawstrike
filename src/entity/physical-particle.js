@@ -7,8 +7,8 @@ class PhysicalParticle extends Entity {
     vX = cos(this.angle) * this.speed;
     vY = sin(this.angle) * this.speed;
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         this.vY += elapsed * 800; // Gravity
 

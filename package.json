@@ -17,6 +17,7 @@
   "type": "module",
   "author": "Rémi Vansteelandt",
   "dependencies": {
+    "bachelor": "file:../bachelor/framework",
     "@remvst/js13k-tools": "^1.0.0",
     "clean-css": "^5.3.3",
     "dotenv": "^17.2.1",

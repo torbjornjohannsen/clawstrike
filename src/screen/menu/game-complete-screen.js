@@ -16,7 +16,7 @@ class GameCompleteScreen extends MenuScreen {
         this.addCommand('');
         this.addCommand(
             (inputMode == INPUT_MODE_TOUCH ? nomangle('[TAP]') : nomangle('PRESS [SPACE]')) + nomangle(' TO DISMISS'),
-            () => downKeys[32] || TOUCH_DOWN,
+            () => this.downKeys?.[32] || TOUCH_DOWN,
             () => this.resolve(),
         );
 

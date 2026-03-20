@@ -13,8 +13,8 @@ class Label extends Entity {
         }
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         if (this.visibleStartAge) return;
         for (const camera of this.world.category('camera')) {

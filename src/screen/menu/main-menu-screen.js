@@ -11,7 +11,7 @@ class MainMenuScreen extends MenuScreen {
             inputMode == INPUT_MODE_KEYBOARD
                 ? nomangle('PRESS [SPACE] TO START')
                 : nomangle('[TAP] TO START'),
-            () => downKeys[32] || TOUCH_DOWN,
+            () => this.downKeys?.[32] || TOUCH_DOWN,
             () => this.startGame(),
             false,
         );
@@ -20,7 +20,7 @@ class MainMenuScreen extends MenuScreen {
             if (G.bestRunTime) {
                 this.addCommand(
                     nomangle('PRESS [9] TO START 9 LIVES MODE'),
-                    () => downKeys[57],
+                    () => this.downKeys?.[57],
                     () => {
                         G.difficulty = DIFFICULTY_NINE_LIVES;
                         this.startGame();
@@ -33,7 +33,7 @@ class MainMenuScreen extends MenuScreen {
         if (DEBUG) {
             this.addCommand(
                 nomangle('PRESS [E] TO ENTER LEVEL EDITOR'),
-                () => downKeys[69], // nice
+                () => this.downKeys?.[69], // nice
                 () => G.navigate(new LevelEditorScreen(ALL_LEVELS[0]), true),
             );
         }
@@ -51,7 +51,7 @@ class MainMenuScreen extends MenuScreen {
             world.removeEntity(hud);
         }
 
-        worldScreen.cycle(2);
+        worldScreen.cycle(2, {});
 
         (async () => {
             const flash = world.addEntity(new Flash('#000'));
@@ -94,11 +94,14 @@ class MainMenuScreen extends MenuScreen {
         G.runTime = 0;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
-        // Only allow space bar
-        downKeys = {32: downKeys[32]};
+        // Only allow space bar — mutate the per-frame snapshot so
+        // screens below us only see space
+        for (const key in downKeys) {
+            if (key != 32) delete downKeys[key];
+        }
     }
 
     renderTitle() {

@@ -14,7 +14,7 @@ class Entity {
         return this.cachedHitbox;
     }
 
-    cycle(elapsed) {
+    cycle(elapsed, downKeys) {
         this.age += elapsed;
 
         this.previousX = this.x;

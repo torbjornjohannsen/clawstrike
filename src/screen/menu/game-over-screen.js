@@ -7,7 +7,7 @@ class GameOverScreen extends MenuScreen {
         super();
         this.addCommand(
             (inputMode == INPUT_MODE_TOUCH ? nomangle('[TAP]') : nomangle('PRESS [R]')) + nomangle(' TO TRY AGAIN'),
-            () => downKeys[82] || TOUCH_DOWN,
+            () => this.downKeys?.[82] || TOUCH_DOWN,
             () => this.resolve(),
         );
         if (inputMode == INPUT_MODE_KEYBOARD) {
@@ -27,7 +27,7 @@ class FullGameOverScreen extends MenuScreen {
         super();
         this.addCommand(
             (inputMode == INPUT_MODE_TOUCH ? nomangle('[TAP]') : nomangle('PRESS [SPACE]')) + nomangle(' TO GO BACK TO MAIN MENU'),
-            () => downKeys[32] || TOUCH_DOWN,
+            () => this.downKeys?.[32] || TOUCH_DOWN,
             () => this.resolve(),
         );
     }

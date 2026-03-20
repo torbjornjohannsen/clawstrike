@@ -5,13 +5,13 @@ class GameplayScreen extends WorldScreen {
         this.addDifficultyChangeCommand();
     }
 
-    cycle(elapsed) {
+    cycle(elapsed, downKeys) {
         const enemyCountBefore = this.world.category('human').size;
         const catCountBefore = this.world.category('cat').size;
 
         elapsed *= this.timeFactor || 1;
 
-        super.cycle(elapsed);
+        super.cycle(elapsed, downKeys);
 
         if (G && catCountBefore >= 1) G.runTime += elapsed;
 

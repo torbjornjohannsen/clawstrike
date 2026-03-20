@@ -97,8 +97,8 @@ class LevelEditorScreen extends WorldScreen {
         this.selected = null;
     }
 
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         if (downKeys[49]) this.editMode = 'entity';
         if (downKeys[50]) this.editMode = 'structure';
@@ -455,8 +455,8 @@ class LevelEditorScreen extends WorldScreen {
 }
 
 class CameraTarget extends Entity {
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         let x = 0, y = 0;
         if (downKeys[37]) x = -1;
@@ -470,8 +470,8 @@ class CameraTarget extends Entity {
 }
 
 class TestScreen extends GameplayScreen {
-    cycle(elapsed) {
-        super.cycle(elapsed);
+    cycle(elapsed, downKeys) {
+        super.cycle(elapsed, downKeys);
 
         if (downKeys[27]) {
             this.resolve();
