@@ -6,14 +6,21 @@ class Game {
     screens = [];
     difficulty = inputMode == INPUT_MODE_TOUCH ? DIFFICULTY_EASY : DIFFICULTY_NORMAL;
     recorder = new StateRecorder(async (initReq) => {
-            console.log("Initial: ", JSON.stringify(initReq));
-            return Promise.resolve("Ok"); 
-        }, 
+            await fetch("http://localhost:9090/initial", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(initReq),
+            });
+            return initReq.guid;
+        },
         async (inProgReq) => {
-            console.log("In progress: ", JSON.stringify(inProgReq));
-            return Promise.resolve("Ok");
-        }, 
-        9999);
+            await fetch("http://localhost:9090/in-progress", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(inProgReq),
+            });
+        },
+        100);
 
     constructor() {
         if (DEBUG) {
@@ -58,13 +65,14 @@ class Game {
                         // Reveal the level
                         this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
 
-                        const deserializedWorld = deserializeWorld(ALL_LEVELS[level])
-                        this.recorder.Initialize(deserializedWorld)
+                        this.recorder.Initialize(ALL_LEVELS[level])
 
                         await gameplay.awaitCompletion();
+                        await this.recorder.Flush();
 
                         break;
                     } catch (err) {
+                        console.log("Err:",err)
                         this.runDeaths++;
 
                         if (this.runDeaths < this.difficulty.maxDeaths) {
@@ -98,7 +106,7 @@ class Game {
         }
     }
 
-    frame() {
+    async frame() {
         // for replaying, hardcode elapsed to 1/30? 
         // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30
         const now = performance.now();
@@ -107,7 +115,7 @@ class Game {
 
         const keysSnapshot = {...downKeys};
 
-        this.recorder.RecordUserInput({
+        await this.recorder.RecordUserInput({
             elapsedTime: elapsed,
             downKeys: keysSnapshot,
         });
@@ -160,7 +168,7 @@ class Game {
             });
         }
 
-        requestAnimationFrame(() => this.frame());
+        requestAnimationFrame(async () => await this.frame());
     }
 
     navigate(screen, reset) {

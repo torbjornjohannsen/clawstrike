@@ -12,7 +12,8 @@
     "zip:prod": "tsx build-zip.ts --html=build/index.html --zip=build/game.zip --optimize",
     "watch": "nodemon --watch 'src/**' --watch 'build-game.ts' -x \"npm run build:debug\"",
     "http": "http-server build",
-    "start": "concurrently --kill-others \"npm run watch\" \"npm run http\""
+    "save-server": "tsx save-server.ts",
+    "start": "concurrently --kill-others \"npm run watch\" \"npm run http\" \"npm run save-server\""
   },
   "type": "module",
   "author": "Rémi Vansteelandt",

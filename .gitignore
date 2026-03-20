@@ -5,4 +5,7 @@ build/
 node_modules/
 Efficient-Compression-Tool/
 .env
+*.db
+*.db-shm
+*.db-wal
 ai/out/
