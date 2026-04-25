@@ -81,6 +81,19 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    if (req.method === "GET" && req.url === "/sessions") {
+        try {
+            const sessions = adapter.GetSessions();
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(JSON.stringify(sessions));
+        } catch (err) {
+            console.error(err);
+            res.writeHead(500);
+            res.end("Error");
+        }
+        return;
+    }
+
     if (req.method === "GET" && req.url?.startsWith("/session")) {
         const guid = new URL(req.url, `http://localhost:${PORT}`).searchParams.get("guid");
         if (!guid) {

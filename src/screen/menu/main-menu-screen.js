@@ -28,6 +28,12 @@ class MainMenuScreen extends MenuScreen {
                 );
             }
             this.addDifficultyChangeCommand();
+
+            this.addCommand(
+                nomangle('PRESS [R] FOR REPLAYS'),
+                () => this.downKeys?.[82],
+                () => G.navigate(new ReplayListScreen()),
+            );
         }
 
         if (DEBUG) {

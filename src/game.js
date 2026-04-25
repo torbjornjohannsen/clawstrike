@@ -20,7 +20,7 @@ class Game {
                 body: JSON.stringify(inProgReq),
             });
         },
-        100);
+        9999);
 
     constructor() {
         if (DEBUG) {
@@ -106,6 +106,13 @@ class Game {
         }
     }
 
+    startReplay(session) {
+        this.screens = [];
+        this.navigate(new GameplayScreen(session.initial));
+        this.replayInputs = session.inputs;
+        this.replayIndex = 0;
+    }
+
     /** @type {import("bachelor").GetNextState} */
     getNextState(world, input) {
         const qwe = deserializeWorld(world)
@@ -122,15 +129,32 @@ class Game {
         // for replaying, hardcode elapsed to 1/30? 
         // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30
         const now = performance.now();
-        const elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
+        let elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
         this.lastFrame = now;
 
-        const keysSnapshot = {...downKeys};
-
-        await this.recorder.RecordUserInput({
-            elapsedTime: elapsed,
-            downKeys: keysSnapshot,
-        });
+        let keysSnapshot;
+        if (this.replayInputs) {
+            console.log("in replay land")
+            if (this.replayIndex < this.replayInputs.length) {
+                const stored = this.replayInputs[this.replayIndex++];
+                keysSnapshot = stored.downKeys;
+                elapsed = stored.elapsedTime;
+            } else {
+                this.replayInputs = null;
+                this.screens = [];
+                this.startNavigation();
+                requestAnimationFrame(async () => await this.frame());
+                return;
+            }
+        } else {
+            keysSnapshot = {...downKeys};
+            if (this.recorder.IsInitialized()) {
+                await this.recorder.RecordUserInput({
+                    elapsedTime: elapsed,
+                    downKeys: keysSnapshot,
+                });
+            }
+        }
 
         ctx.miterLimit = 2;
 
