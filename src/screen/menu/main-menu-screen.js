@@ -2,10 +2,12 @@ class MainMenuScreen extends MenuScreen {
 
     title = document.title;
 
-    constructor(worldScreen) {
+    constructor(worldScreen, stateRecorder) {
         super();
 
         this.worldScreen = worldScreen;
+        this.stateRecorder = stateRecorder
+        this.isReplay = false
 
         this.addCommand(
             inputMode == INPUT_MODE_KEYBOARD
@@ -32,7 +34,10 @@ class MainMenuScreen extends MenuScreen {
             this.addCommand(
                 nomangle('PRESS [R] FOR REPLAYS'),
                 () => this.downKeys?.[82],
-                () => G.navigate(new ReplayListScreen()),
+                () => {
+                    this.isReplay = true; 
+                    G.navigate(new ReplayListScreen());
+                },
             );
         }
 
@@ -84,7 +89,6 @@ class MainMenuScreen extends MenuScreen {
     startGame() {
         // TODO fade out instead
         G.screens.pop();
-
         playSong();
 
         const { world } = this.worldScreen;
@@ -95,6 +99,10 @@ class MainMenuScreen extends MenuScreen {
         (async () => {
             await camera.interp('zoom', camera.zoom, 1.3, 2, easeInQuad);
             world.addEntity(new HUD(cat));
+
+            if (!this.isReplay){
+                this.stateRecorder.Initialize(serializeWorld(world))
+            }
         })();
 
         G.runTime = 0;

@@ -10,18 +10,16 @@ for (const type of [
     DESERIALIZE_MAP[(new type()).type] = type;
 }
 
-const serializedProperties = ['type', 'x', 'y', 'angle', 'matrix', 'length', 'text', 'color', 'depth'];
+const serializedProperties = ['type', 'x', 'y', 'angle', 'matrix', 'length', 'text', 'color', 'depth', 'seed'];
 
-if (DEBUG) {
-    serializeEntity = (entity) => {
-        if (!entity.type) return null;
+serializeEntity = (entity) => {
+    if (!entity.type) return null;
 
-        const out = {};
-        for (const key of serializedProperties) {
-            if (key in entity) out[key] = entity[key];
-        }
-        return out;
+    const out = {};
+    for (const key of serializedProperties) {
+        if (key in entity) out[key] = entity[key];
     }
+    return out;
 }
 
 deserializeEntity = (levelData) => {
@@ -32,15 +30,13 @@ deserializeEntity = (levelData) => {
     return entity;
 };
 
-if (DEBUG) {
-    serializeWorld = (world) => {
-        const out = [];
-        for (const entity of world.entities) {
-            const serializedEntity = serializeEntity(entity);
-            if (serializedEntity) out.push(serializedEntity);
-        }
-        return out;
+serializeWorld = (world) => {
+    const out = [];
+    for (const entity of world.entities) {
+        const serializedEntity = serializeEntity(entity);
+        if (serializedEntity) out.push(serializedEntity);
     }
+    return out;
 }
 
 deserializeWorld = (levelData) => {

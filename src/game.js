@@ -20,7 +20,7 @@ class Game {
                 body: JSON.stringify(inProgReq),
             });
         },
-        9999);
+        100);
 
     constructor() {
         if (DEBUG) {
@@ -60,20 +60,19 @@ class Game {
                         // sets it to only have this one new gameplay screen 0
                         // levels are the data in the level/levels/ folder 
                         const gameplay = this.navigate(new GameplayScreen(ALL_LEVELS[level]), true);
-                        if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay));
+                        if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay, this.recorder));
+                        else if (this.replayInputs != null) this.recorder.Initialize(serializeWorld(deserializeWorld(ALL_LEVELS[level])))
 
                         // Reveal the level
                         this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
-
-                        this.recorder.Initialize(ALL_LEVELS[level])
-
                         await gameplay.awaitCompletion();
-                        await this.recorder.Flush();
+                        this.recorder.Reset();
 
                         break;
                     } catch (err) {
                         console.log("Err:",err)
                         this.runDeaths++;
+                        this.recorder.Reset();
 
                         if (this.runDeaths < this.difficulty.maxDeaths) {
                             await this.navigate(new GameOverScreen()).awaitCompletion();
@@ -107,8 +106,8 @@ class Game {
     }
 
     startReplay(session) {
-        this.screens = [];
-        this.navigate(new GameplayScreen(session.initial));
+        this.navigate(new GameplayScreen(session.initial), true);
+        this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
         this.replayInputs = session.inputs;
         this.replayIndex = 0;
     }
@@ -131,12 +130,12 @@ class Game {
         const now = performance.now();
         let elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
         this.lastFrame = now;
-
+        let skipLogic = false;
         let keysSnapshot;
         if (this.replayInputs) {
             console.log("in replay land")
             if (this.replayIndex < this.replayInputs.length) {
-                const stored = this.replayInputs[this.replayIndex++];
+                const stored = this.replayInputs[this.replayIndex++].userInput;
                 keysSnapshot = stored.downKeys;
                 elapsed = stored.elapsedTime;
             } else {
@@ -148,15 +147,24 @@ class Game {
             }
         } else {
             keysSnapshot = {...downKeys};
+            // have a race condition on the flushing due to calling Frame() before we call startNavigate()
+            // thus we need to guard the recorder. 
             if (this.recorder.IsInitialized()) {
-                await this.recorder.RecordUserInput({
-                    elapsedTime: elapsed,
-                    downKeys: keysSnapshot,
-                });
-            }
+                const req = {
+                        elapsedTime: elapsed, 
+                        downKeys: keysSnapshot, 
+                    };
+                console.log("lala: " + JSON.stringify(req))
+                await this.recorder.RecordUserInput(req);
+            } else skipLogic = true;
         }
 
         ctx.miterLimit = 2;
+        while (!skipLogic && this.screens[--i]) {
+            const screen = this.screens[i];
+            screen.cycle(elapsed, keysSnapshot);
+            if (screen.absorb) break;
+        }
 
         if (!DEBUG || document.hasFocus()) {
             if (DEBUG) {
@@ -165,11 +173,6 @@ class Game {
             }
 
             let i = this.screens.length;
-            while (this.screens[--i]) {
-                const screen = this.screens[i];
-                screen.cycle(elapsed, keysSnapshot);
-                if (screen.absorb) break;
-            }
 
             for (const screen of this.screens) {
                 ctx.wrap(() => screen.render());

@@ -43,8 +43,8 @@ angleBetween = (a, b) => {
     return atan2(b.y - a.y, b.x - a.x);
 }
 
-rnd = (min, max) => {
-    return random() * (max - min) + min;
+rnd = (min, max) => { 
+    return  0.5*(max - min) + min;
 }
 
 // Make Math global
