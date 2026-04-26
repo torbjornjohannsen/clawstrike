@@ -58,7 +58,7 @@ class Game {
                 for (let attempt = 0; ; attempt++) {
                     try {
                         // sets it to only have this one new gameplay screen 0
-                        // levels are the data in the level/levels/ folder 
+                        // levels are the data in the level/levels/ folder
                         const gameplay = this.navigate(new GameplayScreen(ALL_LEVELS[level]), true);
                         if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay, this.recorder));
                         else if (this.replayInputs != null) this.recorder.Initialize(serializeWorld(deserializeWorld(ALL_LEVELS[level])))
@@ -124,90 +124,89 @@ class Game {
         return serializeWorld(qwe);
     }
 
-    async frame() {
-        // for replaying, hardcode elapsed to 1/30? 
-        // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30
-        const now = performance.now();
-        let elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
-        this.lastFrame = now;
-        let skipLogic = false;
-        let keysSnapshot;
+    advanceScreens(elapsed, keys) {
+        let i = this.screens.length;
+        while (this.screens[--i]) {
+            const screen = this.screens[i];
+            screen.cycle(elapsed, keys);
+            if (screen.absorb) break;
+        }
+    }
+
+    async logicStep() {
         if (this.replayInputs) {
-            console.log("in replay land")
             if (this.replayIndex < this.replayInputs.length) {
                 const stored = this.replayInputs[this.replayIndex++].userInput;
-                keysSnapshot = stored.downKeys;
-                elapsed = stored.elapsedTime;
+                this.advanceScreens(stored.elapsedTime, stored.downKeys);
             } else {
                 this.replayInputs = null;
                 this.screens = [];
                 this.startNavigation();
-                requestAnimationFrame(async () => await this.frame());
-                return;
             }
         } else {
-            keysSnapshot = {...downKeys};
-            // have a race condition on the flushing due to calling Frame() before we call startNavigate()
-            // thus we need to guard the recorder. 
+            const keysSnapshot = {...downKeys};
             if (this.recorder.IsInitialized()) {
-                const req = {
-                        elapsedTime: elapsed, 
-                        downKeys: keysSnapshot, 
-                    };
-                console.log("lala: " + JSON.stringify(req))
-                await this.recorder.RecordUserInput(req);
-            } else skipLogic = true;
-        }
-
-        ctx.miterLimit = 2;
-        while (!skipLogic && this.screens[--i]) {
-            const screen = this.screens[i];
-            screen.cycle(elapsed, keysSnapshot);
-            if (screen.absorb) break;
-        }
-
-        if (!DEBUG || document.hasFocus()) {
-            if (DEBUG) {
-                if (keysSnapshot[71]) elapsed *= 0.1;
-                if (keysSnapshot[70]) elapsed *= 4;
+                
+                await this.recorder.RecordUserInput({
+                    elapsedTime: 1 / 60,
+                    downKeys: keysSnapshot,
+                });
             }
+            let advanceElapsed = 1 / 60;
+            if (DEBUG) {
+                if (keysSnapshot[71]) advanceElapsed *= 0.1;
+                if (keysSnapshot[70]) advanceElapsed *= 4;
+            }
+            this.advanceScreens(advanceElapsed, keysSnapshot);
+        }
+    }
 
-            let i = this.screens.length;
+    renderStep(now) {
+        ctx.miterLimit = 2;
+
+        for (const screen of this.screens) {
+            ctx.wrap(() => screen.render());
+        }
+
+        if (DEBUG && DEBUG_INFO) ctx.wrap(() => {
+            this.frameTimes[this.lastFrameIndex] = now;
+            const nextIndex = (this.lastFrameIndex + 1) % this.frameTimes.length;
+            const fps = (this.frameTimes.length - 1) / ((now - this.frameTimes[nextIndex]) / 1000);
+            this.lastFrameIndex = nextIndex;
+
+            ctx.translate(10, 10);
+            ctx.font = '20px Courier';
+            ctx.textAlign = nomangle('left');
+            ctx.textBaseline = nomangle('middle');
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#000';
+            ctx.shadowOffsetY = 2;
+
+            const debugValues = [
+                `FPS: ${fps.toFixed(1)}`,
+            ]
 
             for (const screen of this.screens) {
-                ctx.wrap(() => screen.render());
+                debugValues.push(...screen.debugValues());
             }
 
-            if (DEBUG && DEBUG_INFO) ctx.wrap(() => {
-                this.frameTimes[this.lastFrameIndex] = now;
-                const nextIndex = (this.lastFrameIndex + 1) % this.frameTimes.length;
-                const fps = (this.frameTimes.length - 1) / ((now - this.frameTimes[nextIndex]) / 1000);
-                this.lastFrameIndex = nextIndex;
+            for (const value of debugValues) {
+                ctx.fillText(value, 0, 0);
+                ctx.translate(0, 20);
+            }
+        });
+    }
 
-                ctx.translate(10, 10);
-                ctx.font = '20px Courier';
-                ctx.textAlign = nomangle('left');
-                ctx.textBaseline = nomangle('middle');
-                ctx.fillStyle = '#fff';
-                ctx.shadowColor = '#000';
-                ctx.shadowOffsetY = 2;
+    async frame() {
+        const now = performance.now();
+        this.lastFrame = now;
 
-                const debugValues = [
-                    `FPS: ${fps.toFixed(1)}`,
-                ]
-
-                for (const screen of this.screens) {
-                    debugValues.push(...screen.debugValues());
-                }
-
-                for (const value of debugValues) {
-                    ctx.fillText(value, 0, 0);
-                    ctx.translate(0, 20);
-                }
-            });
+        if (!DEBUG || document.hasFocus()) {
+            await this.logicStep();
+            this.renderStep(now);
         }
 
-        requestAnimationFrame(async () => await this.frame());
+        requestAnimationFrame(() => this.frame());
     }
 
     navigate(screen, reset) {

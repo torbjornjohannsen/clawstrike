@@ -10,7 +10,10 @@ for (const type of [
     DESERIALIZE_MAP[(new type()).type] = type;
 }
 
-const serializedProperties = ['type', 'x', 'y', 'angle', 'matrix', 'length', 'text', 'color', 'depth', 'seed'];
+const serializedProperties = ['type', 'x', 'y', 'angle', 'matrix', 'length', 'text', 'color', 'depth', 'seed',
+    'facing', 'walking', 'walkingDirection', 'vY', 'lastLanded', 'nextShot', 'aim', 'lastSeenCat', 'lastCatCheck',
+    'visionDistance', 'health'
+];
 
 serializeEntity = (entity) => {
     if (!entity.type) return null;
