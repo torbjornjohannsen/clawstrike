@@ -27,7 +27,8 @@ class Game {
             this.lastFrameIndex = 0;
             this.frameTimes = Array(60).fill(0);
         }
-
+        
+        this.gameStarted = false; 
 
         if (DEBUG) {
             const params = new URLSearchParams(location.search);
@@ -45,7 +46,6 @@ class Game {
 
     async startNavigation() {
         let promptedEasyMode;
-
         while (true) {
             this.runTime = this.runLevelIndex = this.runDeaths = 0;
 
@@ -56,15 +56,17 @@ class Game {
                 this.runLevelIndex = level;
 
                 for (let attempt = 0; ; attempt++) {
+                    this.gameStarted = false; 
                     try {
                         // sets it to only have this one new gameplay screen 0
                         // levels are the data in the level/levels/ folder
                         const gameplay = this.navigate(new GameplayScreen(ALL_LEVELS[level]), true);
-                        if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay, this.recorder));
-                        else if (this.replayInputs != null) this.recorder.Initialize(serializeWorld(deserializeWorld(ALL_LEVELS[level])))
+                        if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay));
+                        //else if (this.replayInputs != null) this.recorder.Initialize(serializeWorld(deserializeWorld(ALL_LEVELS[level])))
 
                         // Reveal the level
                         this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
+                        this.gameStarted = true; 
                         await gameplay.awaitCompletion();
                         this.recorder.Reset();
 
@@ -124,10 +126,21 @@ class Game {
         return serializeWorld(qwe);
     }
 
-    advanceScreens(elapsed, keys) {
+    async advanceScreens(elapsed, keys, isReplay) {
         let i = this.screens.length;
         while (this.screens[--i]) {
             const screen = this.screens[i];
+            if (this.gameStarted && !isReplay && screen instanceof GameplayScreen) {
+                if (!this.recorder.IsInitialized()) {
+                    // Lazy initialization - will be inefficient but ensures we only initialize at the point when we should. 
+                    await this.recorder.Initialize(serializeWorld(screen.world));
+                }
+                    
+                await this.recorder.RecordUserInput({
+                    elapsedTime: elapsed,
+                    downKeys: keys,
+                });
+            }
             screen.cycle(elapsed, keys);
             if (screen.absorb) break;
         }
@@ -137,7 +150,7 @@ class Game {
         if (this.replayInputs) {
             if (this.replayIndex < this.replayInputs.length) {
                 const stored = this.replayInputs[this.replayIndex++].userInput;
-                this.advanceScreens(stored.elapsedTime, stored.downKeys);
+                await this.advanceScreens(stored.elapsedTime, stored.downKeys, true);
             } else {
                 this.replayInputs = null;
                 this.screens = [];
@@ -145,19 +158,13 @@ class Game {
             }
         } else {
             const keysSnapshot = {...downKeys};
-            if (this.recorder.IsInitialized()) {
-                
-                await this.recorder.RecordUserInput({
-                    elapsedTime: 1 / 60,
-                    downKeys: keysSnapshot,
-                });
-            }
+            
             let advanceElapsed = 1 / 60;
             if (DEBUG) {
                 if (keysSnapshot[71]) advanceElapsed *= 0.1;
                 if (keysSnapshot[70]) advanceElapsed *= 4;
             }
-            this.advanceScreens(advanceElapsed, keysSnapshot);
+            await this.advanceScreens(advanceElapsed, keysSnapshot, false);
         }
     }
 
