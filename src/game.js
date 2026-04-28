@@ -114,9 +114,27 @@ class Game {
         this.replayIndex = 0;
     }
 
+    stopReplay() {
+        this.replayInputs = null;
+        this.screens = [];
+        this.startNavigation();
+    }
+
+    get recordableGameplay() {
+        if (!this.gameStarted) return null;
+
+        for (let i = this.screens.length; this.screens[--i];) {
+            const screen = this.screens[i];
+            if (screen instanceof GameplayScreen) {
+                return screen.world.category('cat').size ? screen : null;
+            }
+            if (!(screen instanceof TransitionScreen)) return null;
+        }
+    }
+
     /** @type {import("bachelor").GetNextState} */
     getNextState(world, input) {
-        const qwe = deserializeWorld(world)
+        const qwe = deserializeWorld(getReplayWorldData(world))
         let remaining = input.elapsedTime;
         while (remaining > 0) {
             const advance = min(remaining, 1 / 120);
@@ -127,13 +145,15 @@ class Game {
     }
 
     async advanceScreens(elapsed, keys, isReplay) {
+        const recordableGameplay = isReplay ? null : this.recordableGameplay;
+
         let i = this.screens.length;
         while (this.screens[--i]) {
             const screen = this.screens[i];
-            if (this.gameStarted && !isReplay && screen instanceof GameplayScreen) {
+            if (screen === recordableGameplay) {
                 if (!this.recorder.IsInitialized()) {
                     // Lazy initialization - will be inefficient but ensures we only initialize at the point when we should. 
-                    await this.recorder.Initialize(serializeWorld(screen.world));
+                    await this.recorder.Initialize(serializeReplayState(screen.world));
                 }
                     
                 await this.recorder.RecordUserInput({
@@ -148,13 +168,17 @@ class Game {
 
     async logicStep() {
         if (this.replayInputs) {
+            if (downKeys[77]) {
+                this.stopReplay();
+                return;
+            }
+
             if (this.replayIndex < this.replayInputs.length) {
                 const stored = this.replayInputs[this.replayIndex++].userInput;
                 await this.advanceScreens(stored.elapsedTime, stored.downKeys, true);
             } else {
                 this.replayInputs = null;
-                this.screens = [];
-                this.startNavigation();
+                this.navigate(new ReplayEndScreen());
             }
         } else {
             const keysSnapshot = {...downKeys};

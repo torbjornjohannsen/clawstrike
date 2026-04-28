@@ -49,3 +49,44 @@ deserializeWorld = (levelData) => {
     }
     return world;
 }
+
+getReplayWorldData = (replayState) => replayState?.world || replayState;
+
+serializeReplayCamera = (world) => {
+    const camera = firstItem(world.category('camera'));
+    if (!camera) return null;
+
+    const cameraState = {
+        x: camera.x,
+        y: camera.y,
+        zoom: camera.zoom,
+        age: camera.age,
+        shakeEndAge: camera.shakeEndAge,
+        shakePower: camera.shakePower,
+    };
+
+    const interpolators = [];
+    for (const entity of world.entities) {
+        if (entity instanceof Interpolator && entity.object === camera) {
+            interpolators.push({
+                property: entity.property,
+                fromValue: entity.fromValue,
+                toValue: entity.toValue,
+                duration: entity.duration,
+                age: entity.age,
+                easing: entity.easing === easeInQuad ? 'easeInQuad' : 'linear',
+            });
+        }
+    }
+    if (interpolators.length) cameraState.interpolators = interpolators;
+
+    return cameraState;
+}
+
+serializeReplayState = (world) => ({
+    world: serializeWorld(world),
+    camera: serializeReplayCamera(world),
+    entityAges: world.entities
+        .filter(entity => entity.type)
+        .map(entity => entity.age),
+});

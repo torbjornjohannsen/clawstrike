@@ -32,3 +32,14 @@ class FullGameOverScreen extends MenuScreen {
         );
     }
 }
+
+class ReplayEndScreen extends MenuScreen {
+
+    absorb = true;
+    title = nomangle('REPLAY ENDED');
+
+    constructor() {
+        super();
+        this.addMainMenuCommand();
+    }
+}

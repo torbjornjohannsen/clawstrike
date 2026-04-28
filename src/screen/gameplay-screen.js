@@ -39,7 +39,7 @@ class GameplayScreen extends WorldScreen {
             }
 
             if (catCountBefore && !this.world.category('cat').size) {
-                this.reject(false);
+                this.reject(true);
             }
         }
     }
