@@ -26,6 +26,12 @@ class Game {
         if (DEBUG) {
             this.lastFrameIndex = 0;
             this.frameTimes = Array(60).fill(0);
+            this.fpsBuffer = [];
+            setInterval(() => {
+                if (this.fpsBuffer.length === 0) return;
+                fetch('http://localhost:9090/fps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fps: this.fpsBuffer }) }).catch(() => {});
+                this.fpsBuffer = [];
+            }, 60_000);
         }
         
         this.gameStarted = false; 
@@ -199,11 +205,12 @@ class Game {
             ctx.wrap(() => screen.render());
         }
 
-        if (DEBUG && DEBUG_INFO) ctx.wrap(() => {
+        if (DEBUG) ctx.wrap(() => {
             this.frameTimes[this.lastFrameIndex] = now;
             const nextIndex = (this.lastFrameIndex + 1) % this.frameTimes.length;
             const fps = (this.frameTimes.length - 1) / ((now - this.frameTimes[nextIndex]) / 1000);
             this.lastFrameIndex = nextIndex;
+            this.fpsBuffer.push(fps);
 
             ctx.translate(10, 10);
             ctx.font = '20px Courier';

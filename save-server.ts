@@ -1,9 +1,11 @@
 import http from "node:http";
+import fs from "node:fs";
 import { SqliteAdapter } from "bachelor/adapters/sqlite";
 import { getNextState } from "./game-engine.js";
 
 const PORT = 9090;
 const adapter = new SqliteAdapter("recordings.db");
+
 
 const server = http.createServer(async (req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -110,6 +112,24 @@ const server = http.createServer(async (req, res) => {
             res.writeHead(404);
             res.end("Session not found");
         }
+        return;
+    }
+
+    if (req.method === "POST" && req.url === "/fps") {
+        let body = "";
+        req.on("data", (chunk) => (body += chunk));
+        req.on("end", () => {
+            try {
+                const { fps } = JSON.parse(body);
+                const values = Array.isArray(fps) ? fps : [fps];
+                fs.appendFileSync("fps.txt", values.join("\n") + "\n");
+                res.writeHead(200);
+                res.end("Ok");
+            } catch (err) {
+                res.writeHead(400);
+                res.end("Error");
+            }
+        });
         return;
     }
 
