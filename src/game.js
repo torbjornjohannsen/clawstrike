@@ -166,7 +166,7 @@ class Game {
         }
     }
 
-    async logicStep() {
+    async logicStep(elapsed) {
         if (this.replayInputs) {
             if (downKeys[77]) {
                 this.stopReplay();
@@ -183,12 +183,12 @@ class Game {
         } else {
             const keysSnapshot = {...downKeys};
             
-            let advanceElapsed = 1 / 60;
             if (DEBUG) {
                 if (keysSnapshot[71]) advanceElapsed *= 0.1;
                 if (keysSnapshot[70]) advanceElapsed *= 4;
             }
-            await this.advanceScreens(advanceElapsed, keysSnapshot, false);
+            if (elapsed < 1/60) return;
+            await this.advanceScreens(1/60, keysSnapshot, false);
         }
     }
 
@@ -230,13 +230,14 @@ class Game {
 
     async frame() {
         const now = performance.now();
+        const elapsed = now - this.lastFrame;
         this.lastFrame = now;
 
         if (!DEBUG || document.hasFocus()) {
-            await this.logicStep();
+            await this.logicStep(elapsed);
             this.renderStep(now);
         }
-
+        // Will try to match the refresh rate of the display. 
         requestAnimationFrame(() => this.frame());
     }
 
