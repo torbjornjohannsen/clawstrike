@@ -35,6 +35,7 @@ class Game {
         }
         
         this.gameStarted = false; 
+        this.elapsed = 0;
 
         if (DEBUG) {
             const params = new URLSearchParams(location.search);
@@ -189,12 +190,10 @@ class Game {
         } else {
             const keysSnapshot = {...downKeys};
             
-            if (DEBUG) {
-                if (keysSnapshot[71]) advanceElapsed *= 0.1;
-                if (keysSnapshot[70]) advanceElapsed *= 4;
-            }
-            if (elapsed < 1/60) return;
+            this.elapsed += elapsed;
+            if (this.elapsed < 1/60) return;
             await this.advanceScreens(1/60, keysSnapshot, false);
+            this.elapsed = 0;
         }
     }
 
@@ -210,7 +209,7 @@ class Game {
             const nextIndex = (this.lastFrameIndex + 1) % this.frameTimes.length;
             const fps = (this.frameTimes.length - 1) / ((now - this.frameTimes[nextIndex]) / 1000);
             this.lastFrameIndex = nextIndex;
-            this.fpsBuffer.push(fps);
+            if (this.gameStarted) this.fpsBuffer.push(fps);
 
             ctx.translate(10, 10);
             ctx.font = '20px Courier';
