@@ -6,12 +6,13 @@ class Game {
     screens = [];
     difficulty = inputMode == INPUT_MODE_TOUCH ? DIFFICULTY_EASY : DIFFICULTY_NORMAL;
     recorder = new StateRecorder(async (initReq) => {
-            await fetch("http://localhost:9090/initial", {
+            const res = await fetch("http://localhost:9090/initial", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(initReq),
             });
-            return initReq.guid;
+            const data = await res.json();
+            return data.guid;
         },
         async (inProgReq) => {
             await fetch("http://localhost:9090/in-progress", {
@@ -118,7 +119,7 @@ class Game {
         return serializeWorld(qwe);
     }
 
-    async frame() {
+    frame() {
         // for replaying, hardcode elapsed to 1/30? 
         // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30
         const now = performance.now();
@@ -127,7 +128,7 @@ class Game {
 
         const keysSnapshot = {...downKeys};
 
-        await this.recorder.RecordUserInput({
+        this.recorder.RecordUserInput({
             elapsedTime: elapsed,
             downKeys: keysSnapshot,
         });
@@ -180,7 +181,7 @@ class Game {
             });
         }
 
-        requestAnimationFrame(async () => await this.frame());
+        requestAnimationFrame(() => this.frame());
     }
 
     navigate(screen, reset) {

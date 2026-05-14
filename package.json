@@ -18,15 +18,15 @@
   "type": "module",
   "author": "Rémi Vansteelandt",
   "dependencies": {
-    "bachelor": "file:../bachelor/framework",
     "@remvst/js13k-tools": "^1.0.0",
+    "bachelor": "file:../bachelor/framework",
     "clean-css": "^5.3.3",
     "dotenv": "^17.2.1",
     "html-minifier": "^4.0.0",
     "openai": "^5.15.0",
     "roadroller": "^2.1.0",
     "terser": "^5.31.6",
-    "tsx": "^4.20.4",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.4",
     "yargs": "^17.7.2",
     "zip-lib": "^1.0.4"
