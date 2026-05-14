@@ -4,7 +4,8 @@ class WorldScreen extends Screen {
     constructor(serializedWorld) {
         super();
 
-        this.serializedWorld = serializedWorld;
+        this.replayState = serializedWorld;
+        this.serializedWorld = getReplayWorldData(serializedWorld);
 
         if (DEBUG) {
             this.debugValues = () => {
@@ -21,6 +22,13 @@ class WorldScreen extends Screen {
 
         this.world = deserializeWorld(this.serializedWorld);
 
+        if (this.replayState?.entityAges) {
+            let ageIndex = 0;
+            for (const entity of this.world.entities) {
+                if (entity.type) entity.age = this.replayState.entityAges[ageIndex++] || 0;
+            }
+        }
+
         const camera = this.world.addEntity(new Camera());
         const cat = firstItem(this.world.category('cat'));
         if (cat) {
@@ -29,6 +37,32 @@ class WorldScreen extends Screen {
             camera.target = cat;
             camera.x = cat.x;
             camera.y = cat.y - 200;
+        }
+
+        if (this.replayState?.camera) {
+            const cameraState = this.replayState.camera;
+            camera.x = cameraState.x;
+            camera.y = cameraState.y;
+            camera.zoom = cameraState.zoom;
+            camera.age = cameraState.age || 0;
+            camera.shakeEndAge = cameraState.shakeEndAge;
+            camera.shakePower = cameraState.shakePower;
+
+            if (cat) camera.target = cat;
+
+            for (const interpState of cameraState.interpolators || []) {
+                const easing = interpState.easing == 'easeInQuad' ? easeInQuad : linear;
+                const interpolator = this.world.addEntity(new Interpolator(
+                    camera,
+                    interpState.property,
+                    interpState.fromValue,
+                    interpState.toValue,
+                    interpState.duration,
+                    easing,
+                ));
+                interpolator.age = interpState.age || 0;
+                interpolator.cycle(0, {});
+            }
         }
     }
 

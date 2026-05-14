@@ -1,10 +1,10 @@
 class Entity {
     categories = [];
-    seed = random();
 
     constructor() {
         this.x = this.y = this.previousX = this.previousY = this.age = 0;
         this.z = 0;
+        this.seed = random();
     }
 
     get hitbox() {

@@ -27,8 +27,16 @@ class Game {
         if (DEBUG) {
             this.lastFrameIndex = 0;
             this.frameTimes = Array(60).fill(0);
+            this.fpsBuffer = [];
+            setInterval(() => {
+                if (this.fpsBuffer.length === 0) return;
+                fetch('http://localhost:9090/fps', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fps: this.fpsBuffer }) }).catch(() => {});
+                this.fpsBuffer = [];
+            }, 60_000);
         }
-
+        
+        this.gameStarted = false; 
+        this.elapsed = 0;
 
         if (DEBUG) {
             const params = new URLSearchParams(location.search);
@@ -46,7 +54,6 @@ class Game {
 
     async startNavigation() {
         let promptedEasyMode;
-
         while (true) {
             this.runTime = this.runLevelIndex = this.runDeaths = 0;
 
@@ -57,24 +64,25 @@ class Game {
                 this.runLevelIndex = level;
 
                 for (let attempt = 0; ; attempt++) {
+                    this.gameStarted = false; 
                     try {
                         // sets it to only have this one new gameplay screen 0
-                        // levels are the data in the level/levels/ folder 
+                        // levels are the data in the level/levels/ folder
                         const gameplay = this.navigate(new GameplayScreen(ALL_LEVELS[level]), true);
                         if (!attempt && !level) this.navigate(new MainMenuScreen(gameplay));
+                        //else if (this.replayInputs != null) this.recorder.Initialize(serializeWorld(deserializeWorld(ALL_LEVELS[level])))
 
                         // Reveal the level
                         this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
-
-                        this.recorder.Initialize(ALL_LEVELS[level])
-
+                        this.gameStarted = true; 
                         await gameplay.awaitCompletion();
-                        await this.recorder.Flush();
+                        this.recorder.Reset();
 
                         break;
                     } catch (err) {
                         console.log("Err:",err)
                         this.runDeaths++;
+                        this.recorder.Reset();
 
                         if (this.runDeaths < this.difficulty.maxDeaths) {
                             await this.navigate(new GameOverScreen()).awaitCompletion();
@@ -107,9 +115,34 @@ class Game {
         }
     }
 
+    startReplay(session) {
+        this.navigate(new GameplayScreen(session.initial), true);
+        this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
+        this.replayInputs = session.inputs;
+        this.replayIndex = 0;
+    }
+
+    stopReplay() {
+        this.replayInputs = null;
+        this.screens = [];
+        this.startNavigation();
+    }
+
+    get recordableGameplay() {
+        if (!this.gameStarted) return null;
+
+        for (let i = this.screens.length; this.screens[--i];) {
+            const screen = this.screens[i];
+            if (screen instanceof GameplayScreen) {
+                return screen.world.category('cat').size ? screen : null;
+            }
+            if (!(screen instanceof TransitionScreen)) return null;
+        }
+    }
+
     /** @type {import("bachelor").GetNextState} */
     getNextState(world, input) {
-        const qwe = deserializeWorld(world)
+        const qwe = deserializeWorld(getReplayWorldData(world))
         let remaining = input.elapsedTime;
         while (remaining > 0) {
             const advance = min(remaining, 1 / 120);
@@ -119,68 +152,99 @@ class Game {
         return serializeWorld(qwe);
     }
 
-    frame() {
-        // for replaying, hardcode elapsed to 1/30? 
-        // or we record the elapsed as part of user input? Since the particular timing of the inputs could produce different effects vs pegging the framerate to 30
-        const now = performance.now();
-        const elapsed = min((now - (this.lastFrame || 0)) / 1000, 1 / 30);
-        this.lastFrame = now;
+    advanceScreens(elapsed, keys, isReplay) {
+        const recordableGameplay = isReplay ? null : this.recordableGameplay;
 
-        const keysSnapshot = {...downKeys};
+        let i = this.screens.length;
+        while (this.screens[--i]) {
+            const screen = this.screens[i];
+            if (screen === recordableGameplay) {
+                if (!this.recorder.IsInitialized()) {
+                    // Lazy initialization - will be inefficient but ensures we only initialize at the point when we should. 
+                    this.recorder.Initialize(serializeReplayState(screen.world));
+                }
+                    
+                this.recorder.RecordUserInput({
+                    elapsedTime: elapsed,
+                    downKeys: keys,
+                });
+            }
+            screen.cycle(elapsed, keys);
+            if (screen.absorb) break;
+        }
+    }
 
-        this.recorder.RecordUserInput({
-            elapsedTime: elapsed,
-            downKeys: keysSnapshot,
-        });
+    logicStep(elapsed) {
+        if (this.replayInputs) {
+            if (downKeys[77]) {
+                this.stopReplay();
+                return;
+            }
 
+            if (this.replayIndex < this.replayInputs.length) {
+                const stored = this.replayInputs[this.replayIndex++].userInput;
+                this.advanceScreens(stored.elapsedTime, stored.downKeys, true);
+            } else {
+                this.replayInputs = null;
+                this.navigate(new ReplayEndScreen());
+            }
+        } else {
+            const keysSnapshot = {...downKeys};
+            
+            this.elapsed += elapsed;
+            if (this.elapsed < 1/60) return;
+            this.advanceScreens(1/60, keysSnapshot, false);
+            this.elapsed = 0;
+        }
+    }
+
+    renderStep(now) {
         ctx.miterLimit = 2;
 
-        if (!DEBUG || document.hasFocus()) {
-            if (DEBUG) {
-                if (keysSnapshot[71]) elapsed *= 0.1;
-                if (keysSnapshot[70]) elapsed *= 4;
-            }
-
-            let i = this.screens.length;
-            while (this.screens[--i]) {
-                const screen = this.screens[i];
-                screen.cycle(elapsed, keysSnapshot);
-                if (screen.absorb) break;
-            }
-
-            for (const screen of this.screens) {
-                ctx.wrap(() => screen.render());
-            }
-
-            if (DEBUG && DEBUG_INFO) ctx.wrap(() => {
-                this.frameTimes[this.lastFrameIndex] = now;
-                const nextIndex = (this.lastFrameIndex + 1) % this.frameTimes.length;
-                const fps = (this.frameTimes.length - 1) / ((now - this.frameTimes[nextIndex]) / 1000);
-                this.lastFrameIndex = nextIndex;
-
-                ctx.translate(10, 10);
-                ctx.font = '20px Courier';
-                ctx.textAlign = nomangle('left');
-                ctx.textBaseline = nomangle('middle');
-                ctx.fillStyle = '#fff';
-                ctx.shadowColor = '#000';
-                ctx.shadowOffsetY = 2;
-
-                const debugValues = [
-                    `FPS: ${fps.toFixed(1)}`,
-                ]
-
-                for (const screen of this.screens) {
-                    debugValues.push(...screen.debugValues());
-                }
-
-                for (const value of debugValues) {
-                    ctx.fillText(value, 0, 0);
-                    ctx.translate(0, 20);
-                }
-            });
+        for (const screen of this.screens) {
+            ctx.wrap(() => screen.render());
         }
 
+        if (DEBUG) ctx.wrap(() => {
+            this.frameTimes[this.lastFrameIndex] = now;
+            const nextIndex = (this.lastFrameIndex + 1) % this.frameTimes.length;
+            const fps = (this.frameTimes.length - 1) / ((now - this.frameTimes[nextIndex]) / 1000);
+            this.lastFrameIndex = nextIndex;
+            if (this.gameStarted) this.fpsBuffer.push(fps);
+
+            ctx.translate(10, 10);
+            ctx.font = '20px Courier';
+            ctx.textAlign = nomangle('left');
+            ctx.textBaseline = nomangle('middle');
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = '#000';
+            ctx.shadowOffsetY = 2;
+
+            const debugValues = [
+                `FPS: ${fps.toFixed(1)}`,
+            ]
+
+            for (const screen of this.screens) {
+                debugValues.push(...screen.debugValues());
+            }
+
+            for (const value of debugValues) {
+                ctx.fillText(value, 0, 0);
+                ctx.translate(0, 20);
+            }
+        });
+    }
+
+    async frame() {
+        const now = performance.now();
+        const elapsed = now - this.lastFrame;
+        this.lastFrame = now;
+
+        if (!DEBUG || document.hasFocus()) {
+            this.logicStep(elapsed);
+            this.renderStep(now);
+        }
+        // Will try to match the refresh rate of the display. 
         requestAnimationFrame(() => this.frame());
     }
 

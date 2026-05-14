@@ -1,4 +1,5 @@
 class MainMenuScreen extends MenuScreen {
+    //absorb = true;
 
     title = document.title;
 
@@ -6,6 +7,7 @@ class MainMenuScreen extends MenuScreen {
         super();
 
         this.worldScreen = worldScreen;
+        this.isReplay = false
 
         this.addCommand(
             inputMode == INPUT_MODE_KEYBOARD
@@ -28,6 +30,15 @@ class MainMenuScreen extends MenuScreen {
                 );
             }
             this.addDifficultyChangeCommand();
+
+            this.addCommand(
+                nomangle('PRESS [R] FOR REPLAYS'),
+                () => this.downKeys?.[82],
+                () => {
+                    this.isReplay = true; 
+                    G.navigate(new ReplayListScreen());
+                },
+            );
         }
 
         if (DEBUG) {
@@ -78,7 +89,6 @@ class MainMenuScreen extends MenuScreen {
     startGame() {
         // TODO fade out instead
         G.screens.pop();
-
         playSong();
 
         const { world } = this.worldScreen;
@@ -89,6 +99,7 @@ class MainMenuScreen extends MenuScreen {
         (async () => {
             await camera.interp('zoom', camera.zoom, 1.3, 2, easeInQuad);
             world.addEntity(new HUD(cat));
+
         })();
 
         G.runTime = 0;

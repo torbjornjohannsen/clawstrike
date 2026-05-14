@@ -47,6 +47,7 @@ const JS_FILES = [
     'screen/story-screen.js',
 
     'screen/menu/menu-screen.js',
+    'screen/menu/replay-list-screen.js',
     'screen/menu/main-menu-screen.js',
     'screen/menu/pause-screen.js',
     'screen/menu/game-over-screen.js',
