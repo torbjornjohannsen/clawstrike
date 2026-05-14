@@ -20,14 +20,15 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && req.url === "/initial") {
         let body = "";
+
         req.on("data", (chunk) => (body += chunk));
         req.on("end", async () => {
             try {
                 const initReq = JSON.parse(body);
-                await adapter.HandleInitialRequestAsync(initReq);
-                console.log(`Saved initial state for ${initReq.guid}`);
+                const serverID = await adapter.HandleInitialRequestAsync(initReq);
+                console.log(`Saved initial state for ${initReq.guid}->${serverID}`);
                 res.writeHead(200);
-                res.end("Ok");
+                res.end(JSON.stringify({guid: serverID}))
             } catch (err) {
                 console.error(err);
                 res.writeHead(500);

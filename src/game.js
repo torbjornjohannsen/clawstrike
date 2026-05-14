@@ -11,7 +11,8 @@ class Game {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(initReq),
             });
-            const data = await res.json();
+            const data = await res.json()
+            console.log("got server GUID:" + JSON.stringify(data))
             return data.guid;
         },
         async (inProgReq) => {
@@ -76,13 +77,13 @@ class Game {
                         this.navigate(new TransitionScreen(0, -1)).awaitCompletion();
                         this.gameStarted = true; 
                         await gameplay.awaitCompletion();
-                        this.recorder.Reset();
+                        await this.recorder.Reset();
 
                         break;
                     } catch (err) {
                         console.log("Err:",err)
                         this.runDeaths++;
-                        this.recorder.Reset();
+                        await this.recorder.Reset();
 
                         if (this.runDeaths < this.difficulty.maxDeaths) {
                             await this.navigate(new GameOverScreen()).awaitCompletion();
@@ -152,7 +153,7 @@ class Game {
         return serializeWorld(qwe);
     }
 
-    advanceScreens(elapsed, keys, isReplay) {
+    async advanceScreens(elapsed, keys, isReplay) {
         const recordableGameplay = isReplay ? null : this.recordableGameplay;
 
         let i = this.screens.length;
@@ -162,8 +163,8 @@ class Game {
                 if (!this.recorder.IsInitialized()) {
                     // Lazy initialization - will be inefficient but ensures we only initialize at the point when we should. 
                     this.recorder.Initialize(serializeReplayState(screen.world));
-                }
-                    
+                } 
+                
                 this.recorder.RecordUserInput({
                     elapsedTime: elapsed,
                     downKeys: keys,
@@ -174,7 +175,7 @@ class Game {
         }
     }
 
-    logicStep(elapsed) {
+    async logicStep(elapsed) {
         if (this.replayInputs) {
             if (downKeys[77]) {
                 this.stopReplay();
@@ -183,7 +184,7 @@ class Game {
 
             if (this.replayIndex < this.replayInputs.length) {
                 const stored = this.replayInputs[this.replayIndex++].userInput;
-                this.advanceScreens(stored.elapsedTime, stored.downKeys, true);
+                await this.advanceScreens(stored.elapsedTime, stored.downKeys, true);
             } else {
                 this.replayInputs = null;
                 this.navigate(new ReplayEndScreen());
@@ -241,7 +242,7 @@ class Game {
         this.lastFrame = now;
 
         if (!DEBUG || document.hasFocus()) {
-            this.logicStep(elapsed);
+            await this.logicStep(elapsed);
             this.renderStep(now);
         }
         // Will try to match the refresh rate of the display. 
